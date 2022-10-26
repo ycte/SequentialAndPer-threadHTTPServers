@@ -12,6 +12,7 @@ class BasicWebServer{
     //public static String WWW_ROOT = "/home/httpd/html/zoo/classes/cs433/";
     public static String WWW_ROOT = "./";
 
+	static Map<String, String> fileCache = new HashMap<>();
     public static void main(String args[]) throws Exception  {
 	
 	// see if we do not use default server port
@@ -37,7 +38,7 @@ class BasicWebServer{
 	
 		    // process a request
 		    WebRequestHandler wrh = 
-		        new WebRequestHandler( connectionSocket, WWW_ROOT );
+		        new WebRequestHandler( connectionSocket, WWW_ROOT, fileCache );
 
 		    wrh.processRequest();
 

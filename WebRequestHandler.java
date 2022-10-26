@@ -20,11 +20,13 @@ class WebRequestHandler {
     String fileName;
     File fileInfo;
 
+	Map<String, String> fileCache = new HashMap<>();
+
     public WebRequestHandler(Socket connectionSocket, 
-			     String WWW_ROOT) throws Exception
+			     String WWW_ROOT, Map<String, String> fileCache) throws Exception
     {
         reqCount ++;
-
+		this.fileCache = fileCache;
 	    this.WWW_ROOT = WWW_ROOT;
 	    this.connSocket = connectionSocket;
 
@@ -62,6 +64,17 @@ class WebRequestHandler {
 				
 	    String requestMessageLine = inFromClient.readLine();
 	    DEBUG("Request " + reqCount + ": " + requestMessageLine);
+		String sentenceFromClient, userAgent;
+		String[] userAgentArray;
+		while ((sentenceFromClient = inFromClient.readLine()) != null) {
+//			DEBUG(sentenceFromClient);
+			if(sentenceFromClient.charAt(0) == 'U') {
+				userAgentArray = sentenceFromClient.split("\\s");
+				userAgent = userAgentArray[1];
+//				DEBUG(userAgent);
+				break;
+			}
+		}
 		// String requestMessageLine1 = inFromClient.readLine();
 	    // DEBUG(requestMessageLine1);
 	    // process the request
@@ -138,14 +151,25 @@ class WebRequestHandler {
 	    int numOfBytes = (int) fileInfo.length();
 	    outToClient.writeBytes("Content-Length: " + numOfBytes + "\r\n");
 	    outToClient.writeBytes("\r\n");
-	
-	    // send file content
-	    FileInputStream fileStream  = new FileInputStream (fileName);
-	
-	    byte[] fileInBytes = new byte[numOfBytes];
-	    fileStream.read(fileInBytes);
-		// DEBUG(fileInBytes.toString());
-	    outToClient.write(fileInBytes, 0, numOfBytes);
+
+		if(fileCache.containsKey(fileName)) {
+			byte[] fileInBytes = new byte[numOfBytes];
+			fileInBytes = fileCache.get(fileName).getBytes();
+			outToClient.write(fileInBytes, 0, numOfBytes);
+			DEBUG("fileCache:" + fileName);
+		} else {
+			// send file content
+			FileInputStream fileStream  = new FileInputStream (fileName);
+
+			byte[] fileInBytes = new byte[numOfBytes];
+			fileStream.read(fileInBytes);
+			// DEBUG(fileInBytes.toString());
+			outToClient.write(fileInBytes, 0, numOfBytes);
+			if(true) {
+				fileCache.put(fileName, new String(fileInBytes));
+			}
+//			DEBUG(fileCache.get(fileName));
+		}
     }
 
     void outputError(int errCode, String errMsg)
