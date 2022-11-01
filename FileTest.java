@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 
 public class FileTest {
-    public static String cfgRead() throws IOException {
-        String cfgFileName = "./httpd.conf";
+    public static String cfgRead(String cfgFileName) throws IOException {
+//        String cfgFileName = "./httpd.conf";
         File cfgFileInfo = new File(cfgFileName);
         int numOfBytes = (int) cfgFileInfo.length();
         System.out.println("Cfg-Length: " + numOfBytes + "\r\n");
@@ -53,7 +53,8 @@ public class FileTest {
         return res;
     }
     public static void main(String[] args) throws IOException {
-        String cfgFileContent = cfgRead();
+        String cfgFileName = "./httpd.conf";
+        String cfgFileContent = cfgRead(cfgFileName);
         HashMap<String, String> cfgMap = new HashMap<String, String>();
         cfgMap = generateCfgMap(cfgFileContent);
         System.out.println(cfgMap.toString());

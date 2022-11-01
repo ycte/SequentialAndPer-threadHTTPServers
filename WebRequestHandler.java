@@ -20,16 +20,16 @@ class WebRequestHandler {
     String fileName;
     File fileInfo;
 
-	Map<String, String> fileCache = new HashMap<>();
-
+	Map<String, String> fileCache;
+	Map<String, String> cfgMap;
     public WebRequestHandler(Socket connectionSocket, 
-			     String WWW_ROOT, Map<String, String> fileCache) throws Exception
+			     Map<String, String> cfgMap, Map<String, String> fileCache) throws Exception
     {
         reqCount ++;
 		this.fileCache = fileCache;
-	    this.WWW_ROOT = WWW_ROOT;
+//	    this.WWW_ROOT = WWW_ROOT;
 	    this.connSocket = connectionSocket;
-
+		this.cfgMap = cfgMap;
 	    inFromClient =
 	      new BufferedReader(new InputStreamReader(connSocket.getInputStream()));
 
@@ -52,6 +52,7 @@ class WebRequestHandler {
 
 	    connSocket.close();
 	} catch (Exception e) {
+		DEBUG("What error?");
 	    outputError(400, "Server error");
 	}
 
@@ -64,19 +65,29 @@ class WebRequestHandler {
 				
 	    String requestMessageLine = inFromClient.readLine();
 	    DEBUG("Request " + reqCount + ": " + requestMessageLine);
-		String sentenceFromClient, userAgent;
-		String[] userAgentArray;
-		while ((sentenceFromClient = inFromClient.readLine()) != null) {
+		String sentenceFromClient, userAgent = "Mozilla/4.0", vb_server = "default";
+		String[] userAgentArray, vb_serverArray;
+		while (!(sentenceFromClient = inFromClient.readLine()).equals("")) {
 //			DEBUG(sentenceFromClient);
 			if(sentenceFromClient.charAt(0) == 'U') {
 				userAgentArray = sentenceFromClient.split("\\s");
-				userAgent = userAgentArray[1];
-//				DEBUG(userAgent);
-				break;
+				for (int i = 1; i < userAgentArray.length; i++) {
+					userAgent = userAgent + userAgentArray[i];
+				}
+				DEBUG(userAgent);
+//				break;
+			}
+			if(sentenceFromClient.charAt(0) == 'H') {
+				vb_serverArray = sentenceFromClient.split("\\s");
+				vb_server = vb_serverArray[1];
+				DEBUG(vb_server);
+//				break;
 			}
 		}
-		// String requestMessageLine1 = inFromClient.readLine();
-	    // DEBUG(requestMessageLine1);
+//		DEBUG(cfgMap.get("vb_" + vb_server));
+		WWW_ROOT = cfgMap.get("vb_" + vb_server);
+		DEBUG(WWW_ROOT);
+
 	    // process the request
 	    String[] request = requestMessageLine.split("\\s");
 		
@@ -90,7 +101,10 @@ class WebRequestHandler {
 	    urlName = request[1];
 	    DEBUG(urlName);
 		if (urlName.equals("/"))
-			urlName = "index.html";
+			if (userAgent.contains("Phone") || userAgent.contains("phone")) {
+				urlName = "index_m.html";
+			}
+			else urlName = "index.html";
 	    else if ( urlName.startsWith("/") == true )
 	       urlName  = urlName.substring(1);
 

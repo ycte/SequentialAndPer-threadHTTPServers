@@ -12,16 +12,29 @@ class BasicWebServer{
     //public static String WWW_ROOT = "/home/httpd/html/zoo/classes/cs433/";
     public static String WWW_ROOT = "./";
 
+	public static int cacheSize = 8096;
+
+
+	static HashMap<String, String> cfgMap = new HashMap<String, String>();
 	static Map<String, String> fileCache = new HashMap<>();
     public static void main(String args[]) throws Exception  {
 	
-	// see if we do not use default server port
-	if (args.length >= 1)
-	    serverPort = Integer.parseInt(args[0]);
-
-	// see if we want a different root
+	// see if there is .conf
+	cfgMap.put("vb_default", "./");
+	String confName = "httpd.conf";
 	if (args.length >= 2)
-	    WWW_ROOT = args[1];
+		if (args[0].equals("-config")) {
+			confName = args[1];
+			FileTest cfg = new FileTest();
+			String cfgFileContent = cfg.cfgRead(confName);
+			cfgMap = cfg.generateCfgMap(cfgFileContent);
+			serverPort = Integer.parseInt(cfgMap.get("Listen"));
+			cacheSize = Integer.parseInt(cfgMap.get("CacheSize"));
+			System.out.println(cfgMap.get("vb_yunxi.site"));
+			System.out.println(cfgMap.toString());
+		}
+
+
 
 	// create server socket
 	ServerSocket listenSocket = new ServerSocket(serverPort);
@@ -38,7 +51,7 @@ class BasicWebServer{
 	
 		    // process a request
 		    WebRequestHandler wrh = 
-		        new WebRequestHandler( connectionSocket, WWW_ROOT, fileCache );
+		        new WebRequestHandler( connectionSocket, cfgMap, fileCache );
 
 		    wrh.processRequest();
 
