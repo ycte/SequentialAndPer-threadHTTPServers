@@ -116,16 +116,26 @@ class WebRequestHandler {
         //       line = inFromClient.readLine();
         //    }
         // }
-
 	    // map to file name
 	    fileName = WWW_ROOT + urlName;
-	    DEBUG("Map to File name: " + fileName);
-	    fileInfo = new File( fileName );
-	    if ( !fileInfo.isFile() ) 
-	    {
-		    outputError(404,  "Not Found");
-		    fileInfo = null;
-	    }
+		String valueTemp = "";
+		if (fileName.contains(".cgi")) {
+			int index = fileName.indexOf(".cgi");
+			valueTemp = fileName.substring(index + 5);
+			Map<String, String> env = new HashMap<>();
+			env.put("QUERY_STRING", valueTemp);
+			ProcessBuilderTest proBT = new ProcessBuilderTest();
+			String result = proBT.runPB(fileName.substring(0, fileName.indexOf("cgi")+4),WWW_ROOT, env);
+			System.out.println(result);
+		}
+		else {
+			DEBUG("Map to File name: " + fileName);
+			fileInfo = new File(fileName);
+			if (!fileInfo.isFile()) {
+				outputError(404, "Not Found");
+				fileInfo = null;
+			}
+		}
 
     } // end mapURL2file
 

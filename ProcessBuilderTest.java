@@ -58,11 +58,14 @@ public class ProcessBuilderTest {
 //        }
 
 //        ProcessBuilder pb = new ProcessBuilder(args);
+//        String fileName = "./cgi/price.cgi?/appl/";
+//        String valueTemp = "";
+//        if (fileName.contains(".cgi")) {
+//            int index = fileName.indexOf(".cgi");
+//            valueTemp = fileName.substring(index + 5);
+//            System.out.println(valueTemp);
+//        }
         Map<String, String> env = new HashMap<>();
-//        Map<String, String> environment;
-//        if (environment != null)
-//            env.putAll(environment);
-//        Process process = pb.start();
         env.put("QUERY_STRING", "/appl/");
         env.put("a","b");
         String result = runPB("./cgi/price.cgi","./", env);
