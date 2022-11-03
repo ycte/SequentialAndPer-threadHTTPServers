@@ -35,7 +35,7 @@ public class ProcessBuilderTest {
         BufferedReader br = new BufferedReader(isr);
         String line, result = "";
         while ((line = br.readLine()) != null) {
-//            System.out.println(line);
+            System.out.println(line);
             result += line;
         }
         return result;

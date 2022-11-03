@@ -3,6 +3,10 @@
  **/
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -124,9 +128,24 @@ class WebRequestHandler {
 			valueTemp = fileName.substring(index + 5);
 			Map<String, String> env = new HashMap<>();
 			env.put("QUERY_STRING", valueTemp);
-			ProcessBuilderTest proBT = new ProcessBuilderTest();
-			String result = proBT.runPB(fileName.substring(0, fileName.indexOf("cgi")+4),WWW_ROOT, env);
-			System.out.println(result);
+			DEBUG(fileName.substring(0, fileName.indexOf(".cgi")+4));
+			String result = runPB(fileName.substring(0, fileName.indexOf(".cgi")+4),WWW_ROOT, env);
+//			System.out.println(result);
+
+			String fileNameTemp = "./cgiOutput";
+			Path path = Paths.get(fileNameTemp);
+			try (BufferedWriter writer =
+						 Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+				writer.write(result);
+			}
+			fileInfo = new File("./cgiOutput");
+			if (!fileInfo.isFile()) {
+				outputError(404, "Not Found");
+				fileInfo = null;
+			}
+			DEBUG("write");
+			this.fileName = "./cgiOutput";
+//			this.fileName = fileName.substring(0, fileName.indexOf(".cgi")+4);
 		}
 		else {
 			DEBUG("Map to File name: " + fileName);
@@ -136,9 +155,7 @@ class WebRequestHandler {
 				fileInfo = null;
 			}
 		}
-
     } // end mapURL2file
-
 
     private void outputResponseHeader() throws Exception 
     {
@@ -154,10 +171,10 @@ class WebRequestHandler {
 //        System.out.println("Start time:" + formatter.format(date));
 		Date date1 = formatter.parse("wed, 26 oct 2022 15:37:15 CST");
 //        System.out.println("Start time:" + formatter.format(date1));
-		outToClient.writeBytes("Date: "+formatter.format(date));
+		outToClient.writeBytes("Date: "+formatter.format(date)+"\n");
 
 		String htName =  InetAddress.getLocalHost().getHostName();
-		outToClient.writeBytes("Server: "+htName);
+		outToClient.writeBytes("Server: "+htName+"\n");
 
 	    if (urlName.endsWith(".jpg"))
 	        outToClient.writeBytes("Content-Type: image/jpeg\r\n");
@@ -183,6 +200,7 @@ class WebRequestHandler {
 			DEBUG("fileCache:" + fileName);
 		} else {
 			// send file content
+			DEBUG(fileName);
 			FileInputStream fileStream  = new FileInputStream (fileName);
 
 			byte[] fileInBytes = new byte[numOfBytes];
@@ -203,6 +221,38 @@ class WebRequestHandler {
 	    } catch (Exception e) {}
     }
 
+	public static String runPB(String command, String directory, Map<String, String> env) throws IOException {
+		ProcessBuilder processBuilder = new ProcessBuilder(
+				command);
+//        System.out.println(env.keySet());
+		Set set = env.keySet();
+		Iterator iterator = set.iterator();
+		while (iterator.hasNext()){
+			Object key = iterator.next();
+			Object value = env.get(key);
+			processBuilder.environment().put((String) key, (String) value);
+			System.out.println("env add: "+key+"===>"+value);
+		}
+		processBuilder.directory(new File(directory));
+		Process process = processBuilder.start();
+//        OutputStreamWriter osw = new OutputStreamWriter(process.getOutputStream());
+//        osw.write("rake routes");
+//        osw.close();
+		System.out.print(printStream(process.getErrorStream()));
+		String result = printStream(process.getInputStream());
+		return result;
+	}
+
+	public static String printStream(InputStream is) throws IOException {
+		InputStreamReader isr = new InputStreamReader(is);
+		BufferedReader br = new BufferedReader(isr);
+		String line, result = "";
+		while ((line = br.readLine()) != null) {
+			System.out.println(line);
+			result += line;
+		}
+		return result;
+	}
     static void DEBUG(String s) 
     {
        if (_DEBUG)
