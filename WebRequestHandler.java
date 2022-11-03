@@ -1,5 +1,5 @@
 /**
- ** XMU CNNS Class Demo Basic Web Server
+ ** WebRequestHandler with socket
  **/
 import java.io.*;
 import java.net.*;
@@ -31,44 +31,37 @@ class WebRequestHandler {
     {
         reqCount ++;
 		this.fileCache = fileCache;
-//	    this.WWW_ROOT = WWW_ROOT;
 	    this.connSocket = connectionSocket;
 		this.cfgMap = cfgMap;
 	    inFromClient =
 	      new BufferedReader(new InputStreamReader(connSocket.getInputStream()));
-
 	    outToClient =
 	      new DataOutputStream(connSocket.getOutputStream());
-
     }
 
     public void processRequest() 
     {
-
-	try {
-	    mapURL2File();
-
-	    if ( fileInfo != null ) // found the file and knows its info
-	    {
-		    outputResponseHeader();
-		    outputResponseBody();
-	    } // dod not handle error
-
+		try {
+	    	mapURL2File();
+	    	if ( fileInfo != null ) // found the file and knows its info
+	    	{
+		    	outputResponseHeader();
+		    	outputResponseBody();
+	    	} // dod not handle error
 	    connSocket.close();
-	} catch (Exception e) {
-		DEBUG("What error?");
-	    outputError(400, "Server error");
-	}
-
-
-
-    } // end of processARequest
+		} catch (Exception e) {
+			DEBUG("What error?");
+	    	outputError(400, "Server error");
+		}
+    } // end of processRequest
 
     private void mapURL2File() throws Exception 
     {
-				
+		// Read GET message
 	    String requestMessageLine = inFromClient.readLine();
 	    DEBUG("Request " + reqCount + ": " + requestMessageLine);
+
+		// Read userAgent and host chosen
 		String sentenceFromClient, userAgent = "Mozilla/4.0", vb_server = "default";
 		String[] userAgentArray, vb_serverArray;
 		while (!(sentenceFromClient = inFromClient.readLine()).equals("")) {
@@ -79,13 +72,11 @@ class WebRequestHandler {
 					userAgent = userAgent + userAgentArray[i];
 				}
 				DEBUG(userAgent);
-//				break;
 			}
 			if(sentenceFromClient.charAt(0) == 'H') {
 				vb_serverArray = sentenceFromClient.split("\\s");
 				vb_server = vb_serverArray[1];
 				DEBUG(vb_server);
-//				break;
 			}
 		}
 //		DEBUG(cfgMap.get("vb_" + vb_server));
@@ -112,18 +103,11 @@ class WebRequestHandler {
 	    else if ( urlName.startsWith("/") == true )
 	       urlName  = urlName.substring(1);
 
-        // debugging
-        // if (_DEBUG) {
-        //    String line = inFromClient.readLine();
-        //    while ( !line.equals("") ) {
-        //       DEBUG( "Header: " + line );
-        //       line = inFromClient.readLine();
-        //    }
-        // }
 	    // map to file name
 	    fileName = WWW_ROOT + urlName;
 		String valueTemp = "";
 		if (fileName.contains(".cgi")) {
+			// set env, command and output of .cgi
 			int index = fileName.indexOf(".cgi");
 			valueTemp = fileName.substring(index + 5);
 			Map<String, String> env = new HashMap<>();
@@ -131,7 +115,6 @@ class WebRequestHandler {
 			DEBUG(fileName.substring(0, fileName.indexOf(".cgi")+4));
 			String result = runPB(fileName.substring(0, fileName.indexOf(".cgi")+4),WWW_ROOT, env);
 //			System.out.println(result);
-
 			String fileNameTemp = "./cgiOutput";
 			Path path = Paths.get(fileNameTemp);
 			try (BufferedWriter writer =
@@ -145,7 +128,6 @@ class WebRequestHandler {
 			}
 			DEBUG("write");
 			this.fileName = "./cgiOutput";
-//			this.fileName = fileName.substring(0, fileName.indexOf(".cgi")+4);
 		}
 		else {
 			DEBUG("Map to File name: " + fileName);
@@ -222,6 +204,7 @@ class WebRequestHandler {
     }
 
 	public static String runPB(String command, String directory, Map<String, String> env) throws IOException {
+		// .cgi
 		ProcessBuilder processBuilder = new ProcessBuilder(
 				command);
 //        System.out.println(env.keySet());
@@ -235,15 +218,13 @@ class WebRequestHandler {
 		}
 		processBuilder.directory(new File(directory));
 		Process process = processBuilder.start();
-//        OutputStreamWriter osw = new OutputStreamWriter(process.getOutputStream());
-//        osw.write("rake routes");
-//        osw.close();
 		System.out.print(printStream(process.getErrorStream()));
 		String result = printStream(process.getInputStream());
 		return result;
 	}
 
 	public static String printStream(InputStream is) throws IOException {
+		// .cgi
 		InputStreamReader isr = new InputStreamReader(is);
 		BufferedReader br = new BufferedReader(isr);
 		String line, result = "";

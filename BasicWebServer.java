@@ -1,5 +1,7 @@
 /**
- ** XMU CNNS Class Demo Basic Web Server
+ ** Sequential and Per-thread HTTP Servers: service threads competing on welcome socket
+ ** Usage: java BasicWebServer -config <config_file_name>
+ **
  **/
 
 import java.io.*;
@@ -34,17 +36,13 @@ class BasicWebServer{
 			System.out.println(cfgMap.toString());
 		}
 
-
-
 	// create server socket
 	ServerSocket listenSocket = new ServerSocket(serverPort);
 	System.out.println("server listening at: " + listenSocket);
 	System.out.println("server www root: " + WWW_ROOT);
 
 	while (true) {
-
 	    try {
-
 		    // take a ready connection from the accepted queue
 		    Socket connectionSocket = listenSocket.accept();
 		    System.out.println("\nReceive request from " + connectionSocket);
@@ -52,9 +50,7 @@ class BasicWebServer{
 		    // process a request
 		    WebRequestHandler wrh = 
 		        new WebRequestHandler( connectionSocket, cfgMap, fileCache );
-
 		    wrh.processRequest();
-
 	    } catch (Exception e)
 		{
 		}
