@@ -1,3 +1,5 @@
+package WasteCode;
+
 import jdk.nashorn.internal.runtime.Debug;
 
 import java.io.*;
