@@ -16,6 +16,7 @@ class BasicWebServer{
 
 	public static int cacheSize = 8096;
 
+	public static int reqCnt = 0;
 
 	static HashMap<String, String> cfgMap = new HashMap<String, String>();
 	static Map<String, String> fileCache = new HashMap<>();
@@ -36,6 +37,7 @@ class BasicWebServer{
 			System.out.println(cfgMap.toString());
 		}
 
+	HeartbeatMonitor cm = new HeartbeatMonitor();
 	// create server socket
 	ServerSocket listenSocket = new ServerSocket(serverPort);
 	System.out.println("server listening at: " + listenSocket);
@@ -46,11 +48,12 @@ class BasicWebServer{
 		    // take a ready connection from the accepted queue
 		    Socket connectionSocket = listenSocket.accept();
 		    System.out.println("\nReceive request from " + connectionSocket);
-	
+			reqCnt++;
 		    // process a request
 		    WebRequestHandler wrh = 
-		        new WebRequestHandler( connectionSocket, cfgMap, fileCache );
+		        new WebRequestHandler( connectionSocket, cfgMap, fileCache, cacheSize);
 		    wrh.processRequest();
+			cm.Mnt(connectionSocket);
 	    } catch (Exception e)
 		{
 		}

@@ -22,16 +22,22 @@ class WebRequestHandler {
 
     String urlName;
     String fileName;
+	String[] ifModifiedArray;
+	String ifModified;
+	boolean ifModifiedChange = false;
     File fileInfo;
 
 	Map<String, String> fileCache;
+	int cacheSize;
 	Map<String, String> cfgMap;
     public WebRequestHandler(Socket connectionSocket, 
-			     Map<String, String> cfgMap, Map<String, String> fileCache) throws Exception
+			     Map<String, String> cfgMap, Map<String, String> fileCache, int cacheSize) throws Exception
     {
         reqCount ++;
 		this.fileCache = fileCache;
+		this.cacheSize = cacheSize;
 	    this.connSocket = connectionSocket;
+		this.ifModifiedChange = false;
 		this.cfgMap = cfgMap;
 	    inFromClient =
 	      new BufferedReader(new InputStreamReader(connSocket.getInputStream()));
@@ -43,6 +49,15 @@ class WebRequestHandler {
     {
 		try {
 	    	mapURL2File();
+			if (ifModifiedChange) {
+				SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
+				Date date1 = formatter.parse(ifModified);
+				Date date2 = formatter.parse(formatter.format(fileInfo.lastModified()));
+				if (date1.after(date2)) {
+					outputError(304, "not modified");
+					return;
+				}
+			}
 	    	if ( fileInfo != null ) // found the file and knows its info
 	    	{
 		    	outputResponseHeader();
@@ -77,6 +92,12 @@ class WebRequestHandler {
 				vb_serverArray = sentenceFromClient.split("\\s");
 				vb_server = vb_serverArray[1];
 				DEBUG(vb_server);
+			}
+			if(sentenceFromClient.contains("If-Modified-Since")) {
+				ifModifiedArray = sentenceFromClient.split("\\s");
+				ifModified = ifModifiedArray[1];
+				this.ifModifiedChange = true;
+				DEBUG(ifModified);
 			}
 		}
 //		DEBUG(cfgMap.get("vb_" + vb_server));
@@ -150,13 +171,14 @@ class WebRequestHandler {
 		SimpleDateFormat formatter= new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
 		formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
 		Date date = new Date(System.currentTimeMillis());
-//        System.out.println("Start time:" + formatter.format(date));
+        DEBUG("Date: " + formatter.format(date));
 		Date date1 = formatter.parse("wed, 26 oct 2022 15:37:15 CST");
 //        System.out.println("Start time:" + formatter.format(date1));
-		outToClient.writeBytes("Date: "+formatter.format(date)+"\n");
-
+		outToClient.writeBytes("Date: "+formatter.format(date)+"\r\n");
+		DEBUG("Last-Modified: "+formatter.format(fileInfo.lastModified()));
+		outToClient.writeBytes("Last-Modified: "+formatter.format(fileInfo.lastModified())+"\r\n");
 		String htName =  InetAddress.getLocalHost().getHostName();
-		outToClient.writeBytes("Server: "+htName+"\n");
+		outToClient.writeBytes("Server: "+htName+"\r\n");
 
 	    if (urlName.endsWith(".jpg"))
 	        outToClient.writeBytes("Content-Type: image/jpeg\r\n");
@@ -189,7 +211,8 @@ class WebRequestHandler {
 			fileStream.read(fileInBytes);
 			// DEBUG(fileInBytes.toString());
 			outToClient.write(fileInBytes, 0, numOfBytes);
-			if(true) {
+			DEBUG("fileCache: " + fileCache.size() + "/" + cacheSize);
+			if(fileCache.size() <= cacheSize) {
 				fileCache.put(fileName, new String(fileInBytes));
 			}
 //			DEBUG(fileCache.get(fileName));
@@ -240,3 +263,19 @@ class WebRequestHandler {
           System.out.println( s );
     }
 }
+
+// in main
+//while (true) {
+//		try {
+//		// take a ready connection from the accepted queue
+//		Socket connectionSocket = listenSocket.accept();
+//		System.out.println("\nReceive request from " + connectionSocket);
+//		reqCnt++;
+//		// process a request
+//		WebRequestHandler wrh =
+//		new WebRequestHandler( connectionSocket, cfgMap, fileCache, cacheSize);
+//		cm.Mnt(connectionSocket);
+//		wrh.processRequest();
+//		} catch (Exception e)
+//		{
+//		}
