@@ -26,7 +26,7 @@ class WebRequestHandler {
 	String ifModified;
 	boolean ifModifiedChange = false;
     File fileInfo;
-
+	boolean cgiFlag;
 	Map<String, String> fileCache;
 	int cacheSize;
 	Map<String, String> cfgMap;
@@ -48,6 +48,7 @@ class WebRequestHandler {
     public void processRequest() 
     {
 		try {
+			cgiFlag = false;
 	    	mapURL2File();
 			if (ifModifiedChange) {
 				SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
@@ -58,7 +59,7 @@ class WebRequestHandler {
 					return;
 				}
 			}
-	    	if ( fileInfo != null ) // found the file and knows its info
+	    	if ( fileInfo != null && !cgiFlag) // found the file and knows its info
 	    	{
 		    	outputResponseHeader();
 		    	outputResponseBody();
@@ -135,20 +136,22 @@ class WebRequestHandler {
 			env.put("QUERY_STRING", valueTemp);
 			DEBUG(fileName.substring(0, fileName.indexOf(".cgi")+4));
 			String result = runPB(fileName.substring(0, fileName.indexOf(".cgi")+4),WWW_ROOT, env);
+			this.cgiFlag = true;
+			outputResponsecgi(result);
 //			System.out.println(result);
-			String fileNameTemp = "./cgiOutput";
-			Path path = Paths.get(fileNameTemp);
-			try (BufferedWriter writer =
-						 Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-				writer.write(result);
-			}
-			fileInfo = new File("./cgiOutput");
-			if (!fileInfo.isFile()) {
-				outputError(404, "Not Found");
-				fileInfo = null;
-			}
-			DEBUG("write");
-			this.fileName = "./cgiOutput";
+//			String fileNameTemp = "./cgiOutput";
+//			Path path = Paths.get(fileNameTemp);
+//			try (BufferedWriter writer =
+//						 Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+//				writer.write(result);
+//			}
+//			fileInfo = new File("./cgiOutput");
+//			if (!fileInfo.isFile()) {
+//				outputError(404, "Not Found");
+//				fileInfo = null;
+//			}
+//			DEBUG("write");
+//			this.fileName = "./cgiOutput";
 		}
 		else {
 			DEBUG("Map to File name: " + fileName);
@@ -160,6 +163,29 @@ class WebRequestHandler {
 		}
     } // end mapURL2file
 
+	private void outputResponsecgi(String result) throws Exception
+	{
+		outToClient.writeBytes("HTTP/1.0 200 Document Follows\r\n");
+		outToClient.writeBytes("Set-Cookie: MyCool433Seq12345\r\n");
+
+		// Time in the format of Java currentTimeMill
+		// rfc1123-date = wkday "," SP date1 SP time SP "GMT"
+		// date1        = 2DIGIT SP month SP 4DIGIT
+		SimpleDateFormat formatter= new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH);
+		formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+		Date date = new Date(System.currentTimeMillis());
+		DEBUG("Date: " + formatter.format(date));
+		Date date1 = formatter.parse("wed, 26 oct 2022 15:37:15 CST");
+//        System.out.println("Start time:" + formatter.format(date1));
+		outToClient.writeBytes("Date: "+formatter.format(date)+"\r\n");
+		outToClient.writeBytes("Last-Modified: "+formatter.format(date)+"\r\n");
+		String htName =  InetAddress.getLocalHost().getHostName();
+		outToClient.writeBytes("Server: "+htName+"\r\n");
+		outToClient.writeBytes("Content-Type: text/plain\r\n");
+		outToClient.writeBytes("Content-Length: " + result.length() + "\r\n");
+		outToClient.writeBytes("\r\n");
+		outToClient.writeBytes(result);
+	}
     private void outputResponseHeader() throws Exception 
     {
 	    outToClient.writeBytes("HTTP/1.0 200 Document Follows\r\n");
